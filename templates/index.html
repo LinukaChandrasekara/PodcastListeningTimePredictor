@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Podcast Listening Time Predictor</title>
+
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+
+  <style>
+    body { background: #f8fafc; }
+    .brand-gradient { background: linear-gradient(135deg, #111827, #334155); }
+    .card-elevated { border: 0; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
+    .form-label .bi { margin-right: .35rem; color: #64748b; }
+    .muted { color: #6b7280; }
+  </style>
+</head>
+<body>
+  <!-- Top bar -->
+  <nav class="navbar navbar-dark brand-gradient">
+    <div class="container">
+      <a class="navbar-brand d-flex align-items-center" href="#">
+        <i class="bi bi-headphones me-2"></i>
+        Listening Time Predictor
+      </a>
+    </div>
+  </nav>
+
+  <main class="container py-4">
+    <div class="row justify-content-center">
+      <div class="col-lg-8">
+
+        <!-- Alerts -->
+        {% if error %}
+        <div class="alert alert-danger d-flex align-items-start" role="alert">
+          <i class="bi bi-exclamation-triangle-fill me-2"></i>
+          <div><strong>Error:</strong> {{ error }}</div>
+        </div>
+        {% endif %}
+
+        {% if prediction %}
+        <div class="alert alert-success d-flex align-items-start" role="alert">
+          <i class="bi bi-graph-up-arrow me-2"></i>
+          <div>
+            <strong>Predicted Listening Time:</strong> {{ prediction }}
+          </div>
+        </div>
+        {% endif %}
+
+        <!-- Card -->
+        <div class="card card-elevated">
+          <div class="card-body p-4">
+            <h1 class="h4 mb-1">Predict Listening Time (minutes)</h1>
+            <p class="muted mb-4">Enter episode details and submit to get a prediction.</p>
+
+            <!-- Defaults if you don't pass genres from Flask -->
+            {% set default_genres = [
+              "Health","News","Technology","Education","Business","Sports","True Crime",
+              "Comedy","Lifestyle","Science","Entertainment","History","Society & Culture"
+            ] %}
+            {% set genre_list = genres if genres is defined else default_genres %}
+
+            <form method="POST" action="/predict" class="row g-3">
+
+              <!-- Episode Length / Host Popularity -->
+              <div class="col-md-6">
+                <label class="form-label">
+                  <i class="bi bi-clock"></i> Episode Length (minutes)
+                </label>
+                <input type="number" step="0.1" name="Episode_Length_minutes" required
+                       class="form-control" placeholder="e.g., 60"
+                       value="{{ (last_input.Episode_Length_minutes if last_input) or '' }}">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">
+                  <i class="bi bi-person-lines-fill"></i> Host Popularity (%)
+                </label>
+                <input type="number" step="0.1" name="Host_Popularity_percentage" required
+                       class="form-control" placeholder="0–100"
+                       value="{{ (last_input.Host_Popularity_percentage if last_input) or '' }}">
+              </div>
+
+              <!-- Ads / Genre -->
+              <div class="col-md-6">
+                <label class="form-label">
+                  <i class="bi bi-badge-ad"></i> Number of Ads
+                </label>
+                <input type="number" step="1" name="Number_of_Ads" required
+                       class="form-control" placeholder="e.g., 2"
+                       value="{{ (last_input.Number_of_Ads if last_input) or '' }}">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">
+                  <i class="bi bi-tags"></i> Genre
+                </label>
+                <select name="Genre" class="form-select">
+                  {% for g in genre_list %}
+                  <option value="{{ g }}" {% if last_input and last_input.Genre==g %}selected{% endif %}>{{ g }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+
+              <!-- Publication Day / Time -->
+              <div class="col-md-6">
+                <label class="form-label">
+                  <i class="bi bi-calendar3"></i> Publication Day
+                </label>
+                <select name="Publication_Day" class="form-select">
+                  {% set days = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"] %}
+                  {% for d in days %}
+                    <option value="{{ d }}" {% if last_input and last_input.Publication_Day==d %}selected{% endif %}>{{ d }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">
+                  <i class="bi bi-sunrise"></i> Publication Time
+                </label>
+                <select name="Publication_Time" class="form-select">
+                  {% set times = ["Morning","Afternoon","Evening","Night"] %}
+                  {% for t in times %}
+                    <option value="{{ t }}" {% if last_input and last_input.Publication_Time==t %}selected{% endif %}>{{ t }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+
+              <!-- Sentiment -->
+              <div class="col-md-6">
+                <label class="form-label">
+                  <i class="bi bi-emoji-smile"></i> Episode Sentiment
+                </label>
+                <select name="Episode_Sentiment" class="form-select">
+                  {% for s in ["Positive","Neutral","Negative"] %}
+                    <option value="{{ s }}" {% if last_input and last_input.Episode_Sentiment==s %}selected{% endif %}>{{ s }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+
+              <!-- Submit -->
+              <div class="col-12">
+                <button class="btn btn-dark w-100" type="submit">
+                  <i class="bi bi-magic me-2"></i>Predict
+                </button>
+              </div>
+            </form>
+
+            <p class="mt-3 small text-muted">
+              <i class="bi bi-shield-check me-1"></i>
+              Unseen categories are handled safely by the model (ignored if unknown).
+            </p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <!-- Bootstrap JS (optional, for components) -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
